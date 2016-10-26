@@ -6,19 +6,21 @@ FREQ = 300;
 T = 10000 * (1/FREQ); 
 dt = 1/fs; 
 t = 0:dt:T-dt; 
-x = sawtooth(2*pi*FREQ*t); 
+x = sawtooth(2*pi*FREQ*t);
+%x = sin(2*pi*FREQ*t);
 
 pitch = x(1:length(speech))'; 
 
 out = zeros(size(speech)); 
 
-WINSIZE = 1024; 
-hamm = hamming(WINSIZE);
+WINSIZE = 512; 
+%WINDOW = hamming(WINSIZE);
+WINDOW = sqrt(bartlett(WINSIZE));
 
 for i=1:WINSIZE/2:length(speech)-WINSIZE
     %ffts 
-    Speech = fft(speech(i:i+WINSIZE-1).*hamm,WINSIZE); 
-    Pitch = fft(pitch(i:i+WINSIZE-1).*hamm,WINSIZE); 
+    Speech = fft(speech(i:i+WINSIZE-1).*WINDOW,WINSIZE); 
+    Pitch = fft(pitch(i:i+WINSIZE-1).*WINDOW,WINSIZE); 
 
     Speech_re = real(Speech); 
     Speech_im = imag(Speech); 
@@ -27,12 +29,19 @@ for i=1:WINSIZE/2:length(speech)-WINSIZE
 
     Speech_mag = sqrt(Speech_re.^2 + Speech_im.^2); 
     Pitch_mag = sqrt(Pitch_re.^2 + Pitch_im.^2); 
-    Pitch_phase = atan(Pitch_im ./ Pitch_re); 
+    Pitch_phase = phase(Pitch);
 
     %multiply amplitudes, take phase of pitch
     Out_mag = Speech_mag.*Pitch_mag; 
+    %Out_mag = Pitch_mag;
     Out = Out_mag.*exp(Pitch_phase * 1i);
     
     %ifft
-    out(i:i+WINSIZE-1) = out(i:i+WINSIZE-1) + ifft(Out); 
+    out(i:i+WINSIZE-1) = out(i:i+WINSIZE-1) + real(ifft(Out)).*WINDOW; 
 end 
+
+out = 0.5*out/max(abs(out));
+
+aP = audioplayer(out,fs);
+playblocking(aP);
+
