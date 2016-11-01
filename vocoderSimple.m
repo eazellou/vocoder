@@ -2,20 +2,18 @@
 [speech,fs] = audioread('kill_humans.wav'); 
 
 %take in pitch
-FREQ = 300; 
+FREQ = 150; 
 T = 10000 * (1/FREQ); 
 dt = 1/fs; 
 t = 0:dt:T-dt; 
-x = sawtooth(2*pi*FREQ*t);
-%x = sin(2*pi*FREQ*t);
+x = sawtooth(2*pi*FREQ*t) + sawtooth(2*pi*2*FREQ*t) + sawtooth(2*pi*3/2*FREQ*t);
 
 pitch = x(1:length(speech))'; 
 
 out = zeros(size(speech)); 
 
-WINSIZE = 512; 
-%WINDOW = hamming(WINSIZE);
-WINDOW = sqrt(bartlett(WINSIZE));
+WINSIZE = 1024; 
+WINDOW = sqrt(triang(WINSIZE));
 
 for i=1:WINSIZE/2:length(speech)-WINSIZE
     %ffts 
@@ -44,4 +42,6 @@ out = 0.5*out/max(abs(out));
 
 aP = audioplayer(out,fs);
 playblocking(aP);
+
+%plot(out)
 
