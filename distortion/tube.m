@@ -1,4 +1,4 @@
-function y = tube(x, gain,Q, dist, rh, rl, mix)
+function [y] = tube(x, gain, Q, dist, rh, rl, mix)
 % y=tube(x, gain,Q, dist, rh, rl, mix)
 % "Tube distortion" simulation, asymmetrical function
 % x -       input
@@ -13,7 +13,7 @@ function y = tube(x, gain,Q, dist, rh, rl, mix)
 %           capacitances in a tube amplifier
 % mix -     mix of original and distorted sound, 1=only distorted 
 q=x*gain/max(abs(x)); %Normalization
-if Q==O
+if Q==0
     z=q./(l-exp(-dist*q));
     for i=1:length(q) %Test because of the
         if q(i)==Q %transfer function's 
