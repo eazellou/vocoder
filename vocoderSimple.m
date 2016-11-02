@@ -57,6 +57,10 @@ end
 
 out = 0.5*out/max(abs(out));
 
+out = fuzzexp(out, 3, 1);
+out = SDELAY(out);
+out = simple_chorus(out, fs);
+
 aP = audioplayer(out,fs);
 playblocking(aP);
 
