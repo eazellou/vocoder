@@ -37,11 +37,12 @@ DATA speechImag[BUFSIZE];
 DATA synthReal[BUFSIZE];
 DATA synthImag[BUFSIZE];
 DATA bPhase[BUFSIZE];
+DATA bPhaseCosine[BUFSIZE];
 
 DATA bVocoded[2*BUFSIZE];//final vocoded output
 
 DATA *pSpeech, *pSpeechFill, *pSpeechFreq, *pSynth, *pSynthFill, *pSynthFreq, *pVocoded;
-DATA *psReal, *psImag, *pyReal, *pyImag, *phase;
+DATA *psReal, *psImag, *pyReal, *pyImag, *phase, *phaseCos;
 
 void Reset();
 
@@ -50,7 +51,7 @@ interrupt void I2S_ISR()
 	Int16 right, left, output;
 	AIC_read2(&right, &left);
 
-	output = bVocoded[Counter];
+	output = pVocoded[Counter];
 	AIC_write2(output, output);
 
 	pSpeechFill[Counter] = right;  //Only use evens for FFT function
@@ -85,10 +86,39 @@ void splitRealImag(DATA *input, DATA *real, DATA *imag) {
 	}
 }
 
+void combineRealImag(DATA *real, DATA *imag, DATA *out) {
+	int i = 0;
+	for (i = 0; i < BUFSIZE; i++) {
+		out[2*i] = real[i];
+		out[2*i+1] = imag[i];
+	}
+}
+
 void square(DATA *input, int length) {
 	int i = 0;
 	for (i = 0; i < length; i++) {
 		input[i] = (DATA)pow((float)input[i], 2);
+	}
+}
+
+void vecCos(DATA *input, DATA *output, int length) {
+	int i = 0;
+	for (i = 0; i < length; i++) {
+		output[i] = cos(input[i]);
+	}
+}
+
+void vecSin(DATA *input, DATA *output, int length) {
+	int i = 0;
+	for (i = 0; i < length; i++) {
+		output[i] = sin(input[i]);
+	}
+}
+
+void vecMultiply(DATA *x, DATA *y, DATA *out, int length) {
+	int i = 0;
+	for (i = 0; i < length; i++) {
+		out[i] = x[i] * y[i];
 	}
 }
 
@@ -108,6 +138,8 @@ void main(void)
 	pyReal = &synthReal[0];
 	pyImag = &synthImag[0];
 	phase = &bPhase[0];
+	phaseCos = &bPhaseCosine[0];
+	pVocoded = &bVocoded[0];
 	Counter = 0;
 
 	USBSTK5515_init();
@@ -119,7 +151,7 @@ void main(void)
 	{
 		if(Counter >= (BUFSIZE*2))
 		{
-			//Rotate buffers
+			// Rotate buffers
 			temp1 = pSpeechFill;
 			pSpeechFill = pSpeech;
 			pSpeech = temp1;
@@ -131,7 +163,7 @@ void main(void)
 			// reset Counter
 			Counter = 0;
 
-			//Do cfft with scaling.
+			// Do cfft with scaling.
 			cfft_SCALE(pSpeech, BUFSIZE);
 			cbrev(pSpeech, pSpeechFreq, BUFSIZE);
 
@@ -159,14 +191,22 @@ void main(void)
 			// now pyReal has magnitude of synth
 
 			// multiply magnitudes
-			mul32(psReal, pyReal, psReal, BUFSIZE);
+			vecMultiply(psReal, pyReal, psReal, BUFSIZE);
 
 			// real = mag * cos(phase)
 			// imag = mag * sin(phase)
+			vecCos(phase, phaseCos, BUFSIZE);
+			vecSin(phase, phase, BUFSIZE);
 
+			vecMultiply(psReal, phaseCos, pyReal, BUFSIZE);
+			vecMultiply(psReal, phase, pyImag, BUFSIZE);
 
+			// now py buffers have final real and imaginary
+			combineRealImag(pyReal, pyImag, pSynthFreq);
 
-
+			// pSynthFreq has interleaved real and imag
+			cifft(pSynthFreq, BUFSIZE, SCALE);
+			cbrev(pSynthFreq, pVocoded, BUFSIZE);
 
 			if(Counter >= (BUFSIZE*2))  // If this happens, we are too slow!
 				goto TERMINATE;
@@ -175,3 +215,4 @@ void main(void)
 TERMINATE:
 	printf("Not enough time to compute FFT\n");
 }
+
