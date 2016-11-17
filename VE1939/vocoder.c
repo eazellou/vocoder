@@ -37,15 +37,23 @@ DATA speechImag[BUFSIZE];
 DATA synthReal[BUFSIZE];
 DATA synthImag[BUFSIZE];
 DATA bPhase[BUFSIZE];
-DATA bPhaseCosine[BUFSIZE];
 
-DATA bVocoded[2*BUFSIZE];//final vocoded output
+// LDATA buffers
+LDATA bPhaseL[BUFSIZE];
+LDATA bPhaseCosine[BUFSIZE];
+LDATA bSRealL[BUFSIZE];
+LDATA bYRealL[BUFSIZE];
+LDATA bSImagL[BUFSIZE];
+LDATA bYImagL[BUFSIZE];
 
-Int16 sineTable [N_SINE];
-Int16 cosTable [N_SINE];
+LDATA bVocoded[2*BUFSIZE];//final vocoded output
 
-DATA *pSpeech, *pSpeechFill, *pSpeechFreq, *pSynth, *pSynthFill, *pSynthFreq, *pVocoded;
-DATA *psReal, *psImag, *pyReal, *pyImag, *phase, *phaseCos;
+LDATA sineTable [N_SINE];
+LDATA cosTable [N_SINE];
+
+DATA *pSpeech, *pSpeechFill, *pSpeechFreq, *pSynth, *pSynthFill, *pSynthFreq;
+DATA *psReal, *psImag, *pyReal, *pyImag, *phase;
+LDATA *phaseLong, *phaseCosLong, *pSRealL, *pYRealL, *pSImagL, *pYImagL, *pVocoded;
 
 void Reset();
 
@@ -56,7 +64,7 @@ interrupt void I2S_ISR()
 	Int16 right, left, output;
 	AIC_read2(&right, &left);
 
-	output = pVocoded[Counter];
+	output = (DATA)pVocoded[Counter];
 	AIC_write2(output, output);
 
 	pSpeechFill[Counter] = right;  //Only use evens for FFT function
@@ -85,28 +93,25 @@ void I2S_interrupt_setup(void)
 
 void splitRealImag(DATA *input, DATA *real, DATA *imag) {
 	int i = 0;
-	for (i = 0; i < BUFSIZE; i++) {
+	for (i = 0; i < BUFSIZE; ++i) {
 		real[i] = input[2*i];
 		imag[i] = input[2*i + 1];
 	}
 }
 
-void combineRealImag(DATA *real, DATA *imag, DATA *out) {
+void combineRealImag(LDATA *real, LDATA *imag, LDATA *out) {
 	int i = 0;
-	for (i = 0; i < BUFSIZE; i++) {
+	for (i = 0; i < BUFSIZE; ++i) {
 		out[2*i] = real[i];
 		out[2*i+1] = imag[i];
 	}
 }
 
-void square(DATA *input, int length) {
-	int i = 0;
-	for (i = 0; i < length; i++) {
-		input[i] = (DATA)pow((float)input[i], 2);
-	}
+void square(LDATA *input, int length) {
+	mul32(input, input, input, length);
 }
 
-Int16 sineLookup(DATA angle)
+LDATA sineLookup(LDATA angle)
 {
 	Uint16 ind;
 	//angle to index
@@ -114,7 +119,7 @@ Int16 sineLookup(DATA angle)
 	return sineTable[ind];
 }
 
-Int16 cosLookup(DATA angle)
+LDATA cosLookup(LDATA angle)
 {
 	Uint16 ind;
 	//angle to index
@@ -123,24 +128,46 @@ Int16 cosLookup(DATA angle)
 
 }
 
-void vecCos(DATA *input, DATA *output, int length) {
+void vecCos(LDATA *input, LDATA *output, int length) {
 	int i = 0;
-	for (i = 0; i < length; i++) {
+	for (i = 0; i < length; ++i) {
 		output[i] = cosLookup(input[i]);
 	}
 }
 
-void vecSin(DATA *input, DATA *output, int length) {
+void vecSin(LDATA *input, LDATA *output, int length) {
 	int i = 0;
-	for (i = 0; i < length; i++) {
+	for (i = 0; i < length; ++i) {
 		output[i] = sineLookup(input[i]);
 	}
 }
 
-void vecMultiply(DATA *x, DATA *y, DATA *out, int length) {
+void vecCastDown4(LDATA *x1, LDATA *x2, LDATA *x3, LDATA *x4, DATA *out1, DATA *out2, DATA *out3, DATA *out4, int length) {
 	int i = 0;
-	for (i = 0; i < length; i++) {
-		out[i] = x[i] * y[i];
+	for (i = 0; i < length; ++i) {
+		out1[i] = (DATA) x1[i];
+		out2[i] = (DATA) x2[i];
+		out3[i] = (DATA) x3[i];
+		out4[i] = (DATA) x4[i];
+	}
+}
+
+void vecCastUp4(DATA *x1, DATA *x2, DATA *x3, DATA *x4, LDATA *out1, LDATA *out2, LDATA *out3, LDATA *out4, int length) {
+	int i = 0;
+	for (i = 0; i < length; ++i) {
+		out1[i] = (LDATA) x1[i];
+		out2[i] = (LDATA) x2[i];
+		out3[i] = (LDATA) x3[i];
+		out4[i] = (LDATA) x4[i];
+	}
+}
+
+void vecCastUp3(DATA *x1, DATA *x2, DATA *x3, LDATA *out1, LDATA *out2, LDATA *out3, int length) {
+	int i = 0;
+	for (i = 0; i < length; ++i){
+		out1[i] = (LDATA) x1[i];
+		out2[i] = (LDATA) x2[i];
+		out3[i] = (LDATA) x3[i];
 	}
 }
 
@@ -148,7 +175,6 @@ void vecMultiply(DATA *x, DATA *y, DATA *out, int length) {
 
 void main(void)
 {
-	Int32 tmp,tmp2;
 	Int16 ctr;
 	DATA *temp1;
 	pSpeech = &bSpeech[0];
@@ -162,17 +188,22 @@ void main(void)
 	pyReal = &synthReal[0];
 	pyImag = &synthImag[0];
 	phase = &bPhase[0];
-	phaseCos = &bPhaseCosine[0];
 	pVocoded = &bVocoded[0];
 	Counter = 0;
 
+	// LDATA
+	phaseLong = &bPhaseL[0];
+	phaseCosLong = &bPhaseCosine[0];
+	pSRealL = &bSRealL[0];
+	pYRealL = &bYRealL[0];
+	pSImagL = &bSImagL[0];
+	pYImagL = &bYImagL[0];
+
 	for(ctr=0; ctr<N_SINE; ctr++)  // generate sine and cosine table
 	{
-		sineTable[ctr]=sin(PI*ctr/N_SINE);
-		cosTable[ctr]=cos(PI*ctr/N_SINE);
+		sineTable[ctr]=(LDATA)sin(PI*ctr/N_SINE);
+		cosTable[ctr]=(LDATA)cos(PI*ctr/N_SINE);
 	}
-
-
 
 	USBSTK5515_init();
 	AIC_init();
@@ -209,37 +240,50 @@ void main(void)
 			// get phase of synth
 			atan2_16(pyImag, pyReal, phase, BUFSIZE);
 
-			square(psReal, BUFSIZE);
-			square(psImag, BUFSIZE);
+			// get magnitudes mag = sqrt(r^2 + i^2)
+
+			// cast up for multiply
+			vecCastUp4(psReal, psImag, pyReal, pyImag, pSRealL, pSImagL, pYRealL, pYImagL, BUFSIZE);
+			square(pSRealL, BUFSIZE);
+			square(pSImagL, BUFSIZE);
+			square(pYRealL, BUFSIZE);
+			square(pYImagL, BUFSIZE);
+
+			// cast back down
+			vecCastDown4(pSRealL, pSImagL, pYRealL, pYImagL, psReal, psImag, pyReal, pyImag, BUFSIZE);
 
 			// don't scale for now
 			add(psReal, psImag, psReal, BUFSIZE, 0);
 			sqrt_16(psReal, psReal, BUFSIZE);
 			// now psReal has magnitude of speech
 
-			square(pyReal, BUFSIZE);
-			square(pyImag, BUFSIZE);
 			add(pyReal, pyImag, pyReal, BUFSIZE, 0);
 			sqrt_16(pyReal, pyReal, BUFSIZE);
 			// now pyReal has magnitude of synth
 
+			//cast up for multiply
+			// pyReal, psReal, phase
+			vecCastUp3(pyReal, psReal, phase, pYRealL, pSRealL, phaseLong, BUFSIZE);
+
 			// multiply magnitudes
-			vecMultiply(psReal, pyReal, psReal, BUFSIZE);
+			mul32(pSRealL, pYRealL, pSRealL, BUFSIZE);
 
 			// real = mag * cos(phase)
 			// imag = mag * sin(phase)
-			vecCos(phase, phaseCos, BUFSIZE);
-			vecSin(phase, phase, BUFSIZE);
+			vecCos(phaseLong, phaseCosLong, BUFSIZE);
+			vecSin(phaseLong, phaseLong, BUFSIZE);
 
-			vecMultiply(psReal, phaseCos, pyReal, BUFSIZE);
-			vecMultiply(psReal, phase, pyImag, BUFSIZE);
+			// real part
+			mul32(pSRealL, phaseCosLong, pYRealL, BUFSIZE);
+			// imaginary part
+			mul32(pSRealL, phaseLong, pSRealL, BUFSIZE);
 
-			// now py buffers have final real and imaginary
-			combineRealImag(pyReal, pyImag, pSynthFreq);
+			// now buffers have final real and imaginary
+			combineRealImag(pYRealL, pSRealL, pVocoded);
 
 			// pSynthFreq has interleaved real and imag
-			cifft(pSynthFreq, BUFSIZE, SCALE);
-			cbrev(pSynthFreq, pVocoded, BUFSIZE);
+			cifft32(pVocoded, BUFSIZE, SCALE);
+			cbrev32(pVocoded, pVocoded, BUFSIZE);
 
 			if(Counter >= (BUFSIZE*2))  // If this happens, we are too slow!
 				goto TERMINATE;
