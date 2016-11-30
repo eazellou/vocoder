@@ -22,6 +22,7 @@ hailMary.obj: C:/VApps/ticcs/6p1p0/ccsv6/tools/compiler/c5500_4.4.1/include/stda
 hailMary.obj: C:/VApps/ticcs/6p1p0/ccsv6/tools/compiler/c5500_4.4.1/include/_lock.h
 hailMary.obj: ../FIFO_builder.h
 hailMary.obj: C:/VApps/ticcs/6p1p0/ccsv6/tools/compiler/c5500_4.4.1/include/stdint.h
+hailMary.obj: ../triWindowQ.h
 
 ../hailMary.c: 
 N:/windat.V2/workspace_v6_1/C5515_Support_Files/452_Support/Dsplib.h: 
@@ -45,3 +46,4 @@ C:/VApps/ticcs/6p1p0/ccsv6/tools/compiler/c5500_4.4.1/include/stdarg.h:
 C:/VApps/ticcs/6p1p0/ccsv6/tools/compiler/c5500_4.4.1/include/_lock.h: 
 ../FIFO_builder.h: 
 C:/VApps/ticcs/6p1p0/ccsv6/tools/compiler/c5500_4.4.1/include/stdint.h: 
+../triWindowQ.h: 

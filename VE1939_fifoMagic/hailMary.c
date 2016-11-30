@@ -13,11 +13,12 @@
 #include <math.h>
 #include <stdbool.h>
 #include "FIFO_builder.h"
+#include "triWindowQ.h"
 
 #define BUFSIZE 512
 #define ADC_FIFO_SIZE 1024
-#define OVERLAP  1  //BUFSIZE/4
-#define halfPiQ .5 * 32767 // pi/2 in q15
+#define OVERLAP  256  //BUFSIZE/4
+#define halfPiQ 16384//.5 * 32767 // pi/2 in q15
 bool keepSample;
 
 AddIndexFifo(Synth_, 1024, Int16, 1, 0)
@@ -27,7 +28,7 @@ AddIndexFifo(DAC_,1024, Int16, 1, 0)
 DATA inputSpeech [2*BUFSIZE];
 DATA inputSynth  [2*BUFSIZE];
 DATA output [2*BUFSIZE];
-DATA extra [1]; //[OVERLAP-1];
+DATA extra [OVERLAP-1];
 Int16 flag;
 
 DATA speechReal[BUFSIZE];
@@ -104,6 +105,13 @@ void multiply (DATA *x, DATA *y, DATA *out, int length)
 	}
 }
 
+void multiplyReal (DATA *x, DATA *y, DATA *out, int winLength) {
+	int i = 0;
+	for (i = 0; i < winLength; i++) {
+		out[2*i] = (DATA)(((LDATA)x[2*i]*(LDATA)y[2*i])>>15);
+	}
+}
+
 void addition(DATA *x, DATA *y, DATA *out, int length) {
 	int i = 0;
 	for (i = 0; i < length; i++) {
@@ -115,9 +123,18 @@ void square(DATA *input, int length) {
 	multiply(input, input, input, length);
 }
 
+	//TODO: doesn't saturate without float, too slow with float
+void applyGain(DATA *input, int gainFactor, int length){
+	int i = 0;
+	for(i = 0; i < length; ++i){
+		input[i] *= gainFactor;
+	}
+}
+
 
 void main(void)
 {
+	unsigned int tmp;
     DAC_Fifo_Init();
     Speech_Fifo_Init();
     Synth_Fifo_Init();
@@ -148,9 +165,21 @@ void main(void)
             for(ctr=0; ctr<insize; ctr++) {
                Speech_Fifo_Get(&inputSpeech[2*ctr]);
                Synth_Fifo_Get(&inputSynth[2*ctr]);
+               inputSpeech[2*ctr + 1] = 0;
+               inputSynth[2*ctr + 1] = 0;
             }
 
-//			//Do cfft with scaling.
+            //TODO
+//            //Apply pre-gain to synth and speech equally
+//            applyGain(inputSpeech, 2, BUFSIZE);
+//            applyGain(inputSynth, 2, BUFSIZE);
+//            tmp = Speech_Fifo_Size();
+
+            //First window
+            multiplyReal(inputSpeech,triWindow,inputSpeech,BUFSIZE);
+            multiplyReal(inputSynth,triWindow,inputSynth,BUFSIZE);
+
+			//Do cfft with scaling.
 			cfft_SCALE(inputSpeech, BUFSIZE);
 			cbrev(inputSpeech, inputSpeech, BUFSIZE);
 
@@ -169,12 +198,15 @@ void main(void)
 			int i = 0;
 			for (i = 0; i<BUFSIZE; i++)
 			{
-				if(phase[i] < halfPiQ){
-					phaseCosine[i] = phase[i] + halfPiQ;
-				} else {
-					phaseCosine[i] = phase[i] - 3 * halfPiQ;
-				}
+				//THIS APPEARS TO WORK BUT HASN'T BEEN UNIT TESTED
+				phaseCosine[i] = phase[i] + halfPiQ;
+//				if(phase[i] < halfPiQ){
+//					phaseCosine[i] = phase[i] + halfPiQ;
+//				} else {
+//					phaseCosine[i] = phase[i] - 3 * halfPiQ;
+//				}
 			}
+
 			sine(phaseCosine, phaseCosine, BUFSIZE);
 
 			// get magnitudes mag = sqrt(r^2 + i^2)
@@ -191,10 +223,9 @@ void main(void)
 			sqrt_16(synthAdd, synthMagnitude, BUFSIZE);
 			// now synthReal has magnitude of synth
 
-
 			// multiply magnitudes
 			multiply(speechMagnitude, synthMagnitude, speechReal, BUFSIZE);
-
+			applyGain(speechReal, 100, BUFSIZE);
 
 			// real = mag * cos(phase)
 			// imag = mag * sin(phase)
@@ -206,41 +237,34 @@ void main(void)
 
 			combineRealImag(synthReal, synthImag, output, BUFSIZE);
 
-
 			//Do inverse cfft without scaling
 			cifft_NOSCALE(output,BUFSIZE);
             cbrev(output, output, BUFSIZE);
 
+            //window output
+            multiplyReal(output,triWindow,output,BUFSIZE);
+            //applyGain(output,100,BUFSIZE);
+
             //TODO: overlap add
-//            for(ctr=0; ctr < BUFSIZE; ctr++)
-//            {
-//                if(ctr >= insize)
-//                {
-//                	// this is the section that will overlap with
-//                	// the beginning of the next segment
-//                	extra[ctr - insize] = output[2*ctr];
-//                }
-//                else if(ctr < OVERLAP - 1)
-//                {
-//                	// outputting the sum of the extra overhang from the
-//                	// previous convolution with the results of this one
-//                	DAC_Fifo_Put(output[2*ctr] + extra[ctr]);
-//                }
-//                else
-//                {
-//                	// this section does not overlap and can be output directly
-//                	DAC_Fifo_Put(output[2*ctr]);
-//                }
-//            }
-
-            for (ctr=0; ctr<BUFSIZE; ctr++){
-            	DAC_Fifo_Put(output[2*ctr]);
-            }
-
-            //Reset input to all zeros
-            for(ctr=0; ctr<2*BUFSIZE; ctr++){
-                inputSpeech[ctr] = 0;
-                inputSynth[ctr] = 0;
+            for(ctr=0; ctr < BUFSIZE; ctr++)
+            {
+                if(ctr >= insize)
+                {
+                	// this is the section that will overlap with
+                	// the beginning of the next segment
+                	extra[ctr - insize] = output[2*ctr];
+                }
+                else if(ctr < OVERLAP - 1)
+                {
+                	// outputting the sum of the extra overhang from the
+                	// previous convolution with the results of this one
+                	DAC_Fifo_Put(output[2*ctr] + extra[ctr]);
+                }
+                else
+                {
+                	// this section does not overlap and can be output directly
+                	DAC_Fifo_Put(output[2*ctr]);
+                }
             }
 
             if(Speech_Fifo_Size() >= insize || Synth_Fifo_Size() >= insize) printf("error\n");
