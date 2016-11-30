@@ -42,15 +42,6 @@ DATA phase[BUFSIZE];
 DATA phaseSine[BUFSIZE];
 DATA phaseCosine[BUFSIZE];
 
-DATA realNegatives[BUFSIZE];
-DATA imagNegatives[BUFSIZE];
-
-LDATA speechRealLong[BUFSIZE];
-LDATA speechImagLong[BUFSIZE];
-LDATA synthRealLong[BUFSIZE];
-LDATA synthImagLong[BUFSIZE];
-LDATA phaseSineLong[BUFSIZE];
-LDATA phaseCosineLong[BUFSIZE];
 
 void Reset();
 
@@ -124,34 +115,6 @@ void square(DATA *input, int length) {
 	multiply(input, input, input, length);
 }
 
-void vecCastDown4(LDATA *x1, LDATA *x2, LDATA *x3, LDATA *x4, DATA *out1, DATA *out2, DATA *out3, DATA *out4, int length) {
-	int i = 0;
-	for (i = 0; i < length; ++i) {
-		out1[i] = (DATA) x1[i];
-		out2[i] = (DATA) x2[i];
-		out3[i] = (DATA) x3[i];
-		out4[i] = (DATA) x4[i];
-	}
-}
-
-void vecCastUp4(DATA *x1, DATA *x2, DATA *x3, DATA *x4, LDATA *out1, LDATA *out2, LDATA *out3, LDATA *out4, int length) {
-	int i = 0;
-	for (i = 0; i < length; ++i) {
-		out1[i] = (LDATA) x1[i];
-		out2[i] = (LDATA) x2[i];
-		out3[i] = (LDATA) x3[i];
-		out4[i] = (LDATA) x4[i];
-	}
-}
-
-DATA pointFive[BUFSIZE];
-
-DATA y[5] = {0x0009, 0x1999, 0x0, 0xe667, 0x1999};
-DATA x[5] = {0x0009, 0x3dcc, 0x7fff, 0x3dcc, 0xc234};
-DATA r[5];
-DATA rSin[5];
-DATA rCosIn[5];
-DATA rCos[5];
 
 void main(void)
 {
@@ -160,10 +123,6 @@ void main(void)
     Synth_Fifo_Init();
 
     keepSample = true;
-    int j = 0;
-    for(j = 0; j < BUFSIZE; j++){
-    	pointFive[j] = 0.5 * 32768;
-    }
 
 	Int16 ctr;
 	Int32 insize = BUFSIZE - OVERLAP + 1;
@@ -179,20 +138,6 @@ void main(void)
 	I2S_interrupt_setup();
 	_enable_interrupts();
 
-//	atan2_16(x, y, r, 5);
-//	sine(r, rSin, BUFSIZE);
-//	// add pi/2 for cosine
-//	int i = 0;
-//	for (i = 0; i<5; i++)
-//	{
-//		if(r[i] < halfPiQ){
-//			rCosIn[i] = r[i] + halfPiQ;
-//		} else {
-//			rCosIn[i] = r[i] - 3 * halfPiQ;
-//		}
-//	}
-//	sine(rCosIn, rCos, BUFSIZE);
-//	add(x, y, r, 5, 0);
 
 	while(1)
 	{
@@ -214,30 +159,8 @@ void main(void)
 			cbrev(inputSynth, inputSynth, BUFSIZE);
 
 			splitRealImag(inputSynth, synthReal, synthImag, BUFSIZE);
-
-//			int a = 0;
-//			for(i = 0; i < BUFSIZE; ++i){
-//				if(synthReal[i] < 0){
-//					realNegatives[i] = -1;
-//				}
-//				else{
-//					realNegatives[i] = 1;
-//				}
-//
-//				if(synthImag[i] < 0){
-//					imagNegatives[i] = -1;
-//				}
-//				else{
-//					imagNegatives[i] = 1;
-//				}
-//
-//			}
-
 			splitRealImag(inputSpeech, speechReal, speechImag, BUFSIZE);
 
-
-			// real = mag * cos(phase)
-			// imag = mag * sin(phase)
 			// get phase of synth
 			atan2_16(synthReal, synthImag, phase, BUFSIZE);
 			// put sine of phase into phaseSine and cosine of phase into phase
@@ -254,94 +177,41 @@ void main(void)
 			}
 			sine(phaseCosine, phaseCosine, BUFSIZE);
 
-
 			// get magnitudes mag = sqrt(r^2 + i^2)
-
-			// cast up for multiply
-//			vecCastUp4(speechReal, speechImag, synthReal, synthImag,
-//					   speechRealLong, speechImagLong, synthRealLong, synthImagLong, BUFSIZE);
-
 			square(speechReal, BUFSIZE);
 			square(speechImag, BUFSIZE);
 			square(synthReal, BUFSIZE);
 			square(synthImag, BUFSIZE);
 
-//			sqrt_16(synthReal, synthReal, BUFSIZE);
-//			sqrt_16(synthImag, synthImag, BUFSIZE);
-
-//			multiply(synthReal, realNegatives, synthReal, BUFSIZE);
-//			multiply(synthImag, imagNegatives, synthImag, BUFSIZE);
-
-//			// cast back down
-//			vecCastDown4(speechRealLong, speechImagLong, synthRealLong, synthImagLong,
-//					     speechReal, speechImag, synthReal, synthImag, BUFSIZE);
-
-			// don't scale for now
-			//add(speechReal, speechImag, speechAdd, BUFSIZE, 1);
 			addition(speechReal, speechImag, speechAdd, BUFSIZE);
 			sqrt_16(speechAdd, speechMagnitude, BUFSIZE);
 			// now speechReal has magnitude of speech
 
-			//add(synthReal, synthImag, synthAdd, BUFSIZE, 1);
 			addition(synthReal, synthImag, synthAdd, BUFSIZE);
 			sqrt_16(synthAdd, synthMagnitude, BUFSIZE);
 			// now synthReal has magnitude of synth
 
 
-			//cast up for multiply
-			//vecCastUp4(synthReal, speechReal, phaseCosine, phaseSine, synthRealLong, speechRealLong, phaseCosineLong, phaseSineLong, BUFSIZE);
-
 			// multiply magnitudes
 			multiply(speechMagnitude, synthMagnitude, speechReal, BUFSIZE);
+
+
+			// real = mag * cos(phase)
+			// imag = mag * sin(phase)
 
 			// real part
 			multiply(speechReal, phaseCosine, synthReal, BUFSIZE);
 			// imaginary part
 			multiply(speechReal, phaseSine, synthImag, BUFSIZE);
 
-//			multiply(synthMagnitude, phaseCosine, synthReal, BUFSIZE);
-//			multiply(synthMagnitude, phaseSine, synthImag, BUFSIZE);
-			//synthReal and synthImag now should hold original real and imag parts
-
-//			// cast down to be safe
-//			for (i = 0; i < BUFSIZE; i++) {
-//				synthReal[i] = (DATA)synthRealLong[i];
-//				synthImag[i] = (DATA)synthImagLong[i];
-//			}
-
-
 			combineRealImag(synthReal, synthImag, output, BUFSIZE);
 
-			//combineRealImag(speechReal, speechImag, output, BUFSIZE);
 
-
-
-
-
-
-
-
-//            for(ctr=0; ctr < BUFSIZE; ctr++)
-//            {
-//				output[2*ctr] = inputSpeech[2*ctr];// + inputSynth[2*ctr];
-//
-//				output[2*ctr + 1] = inputSpeech[2*ctr+1];// + inputSynth[2*ctr];
-//            }
-
-
-			//Do inverse cfft with scaling
+			//Do inverse cfft without scaling
 			cifft_NOSCALE(output,BUFSIZE);
             cbrev(output, output, BUFSIZE);
 
             //TODO: overlap add
-            //In this section you will need to perform the overlap add.
-            //We have left the logic sections and you need to fill in
-            //which values are being set in each section. Use the "extra"
-            //buffer to handle the values that will overlap into the next
-            //filter computation. Make sure to write values to the DAC_Fifo with
-            //the command "DAC_Fifo_Put(value)".
-            //Also remember that your output alternates between real and imaginary values
-            //for each index
 //            for(ctr=0; ctr < BUFSIZE; ctr++)
 //            {
 //                if(ctr >= insize)
