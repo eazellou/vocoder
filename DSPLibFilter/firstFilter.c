@@ -27,9 +27,9 @@ bool keepSample;
 // buffer is full, that buffer will be used as the input to the FFT.  A third
 // buffer is used for the output of the FFT.
 
-DATA bInput          [2*BUFSIZE];
-DATA bInputFill      [2*BUFSIZE];
-DATA bInputFreq      [2*BUFSIZE]; //FFT/Filter output goes here.
+DATA bInput          [BUFSIZE];
+DATA bInputFill      [BUFSIZE];
+DATA bInputFreq      [BUFSIZE]; //FFT/Filter output goes here.
 
 DATA bqCoeff         [5*NBIQ];
 
@@ -76,9 +76,9 @@ interrupt void I2S_ISR()
 	AIC_write2(output, output);
 
 	pInputFill[Counter] = right;  //Only use evens for FFT function
-	pInputFill[Counter+1] = 0;	//No imaginary part
+	//pInputFill[Counter+1] = 0;	//No imaginary part
 
-	Counter += 2;
+	Counter += 1;
 	IFR0 &= (1 << I2S_BIT_POS);//Clear interrupt Flag
 
 }
@@ -169,11 +169,17 @@ void calculateLPCoeff(DATA *bqCoeff){
 		//Normalize coeffs to a0
 		DATA divisor = a0[i];
 
-		b0[i] = (b0_32[i] << 15)/divisor;
-		b1[i] = (b1_32[i] << 15)/divisor;
-		b2[i] = (b2_32[i] << 15)/divisor;
-		a1[i] = (a1_32[i] << 15)/divisor;
-		a2[i] = (a2_32[i] << 15)/divisor;
+//		b0[i] = (b0_32[i] << 15)/divisor;
+//		b1[i] = (b1_32[i] << 15)/divisor;
+//		b2[i] = (b2_32[i] << 15)/divisor;
+//		a1[i] = (a1_32[i] << 15)/divisor;
+//		a2[i] = (a2_32[i] << 15)/divisor;
+
+		b0[i] = 3199;
+		b1[i] = 6398;
+		b2[i] = 3199;
+		a1[i] = -30894;
+		a2[i] = 10923;
 
 		//Assign coeffs to storage vector in order dictacted b C515DSP_LIB_guide
 		bqCoeff[5*i] = b0[i];
@@ -212,7 +218,7 @@ void main(void)
 
 	while(1)
 	{
-		if(Counter >= (BUFSIZE*2))
+		if(Counter >= (BUFSIZE))
 		{
 			// reset Counter
 			Counter = 0;
@@ -232,13 +238,13 @@ void main(void)
 			//cbrev(pInput, pInputFreq, BUFSIZE);
 
 			//Filter fft result
-			iircas51(pInput, bqCoeff, pInput, dbuffer, NBIQ, 2*BUFSIZE);
+			iircas51(pInput, bqCoeff, pInput, dbuffer, NBIQ, BUFSIZE);
 
 			// pVocoded has interleaved real and imag
 			//cifft(pVocoded, BUFSIZE, SCALE);
 			//cbrev(pVocoded, pVocoded, BUFSIZE);
 
-			if(Counter >= (BUFSIZE*2))  // If this happens, we are too slow!
+			if(Counter >= (BUFSIZE))  // If this happens, we are too slow!
 				goto TERMINATE;
 		}
 	}
