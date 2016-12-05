@@ -22,7 +22,7 @@ hailMary.obj: C:/VApps/ticcs/6p1p0/ccsv6/tools/compiler/c5500_4.4.1/include/stda
 hailMary.obj: C:/VApps/ticcs/6p1p0/ccsv6/tools/compiler/c5500_4.4.1/include/_lock.h
 hailMary.obj: ../FIFO_builder.h
 hailMary.obj: C:/VApps/ticcs/6p1p0/ccsv6/tools/compiler/c5500_4.4.1/include/stdint.h
-hailMary.obj: ../triWindow256.h
+hailMary.obj: ../triWindow1024.h
 hailMary.obj: ../noiseFreqBuffs.h
 
 ../hailMary.c: 
@@ -47,5 +47,5 @@ C:/VApps/ticcs/6p1p0/ccsv6/tools/compiler/c5500_4.4.1/include/stdarg.h:
 C:/VApps/ticcs/6p1p0/ccsv6/tools/compiler/c5500_4.4.1/include/_lock.h: 
 ../FIFO_builder.h: 
 C:/VApps/ticcs/6p1p0/ccsv6/tools/compiler/c5500_4.4.1/include/stdint.h: 
-../triWindow256.h: 
+../triWindow1024.h: 
 ../noiseFreqBuffs.h: 

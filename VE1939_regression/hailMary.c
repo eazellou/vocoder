@@ -13,18 +13,18 @@
 #include <math.h>
 #include <stdbool.h>
 #include "FIFO_builder.h"
-#include "triWindow256.h"
+#include "triWindow1024.h"
 #include "noiseFreqBuffs.h"
 
-#define BUFSIZE 256
-#define ADC_FIFO_SIZE 512
-#define OVERLAP  128  //BUFSIZE/4
+#define BUFSIZE 1024
+#define ADC_FIFO_SIZE 2048
+#define OVERLAP  512
 #define halfPiQ 16384//.5 * 32767 // pi/2 in q15
 bool keepSample;
 
-AddIndexFifo(Synth_, 512, Int16, 1, 0)
-AddIndexFifo(Speech_,512, Int16, 1, 0)
-AddIndexFifo(DAC_,512, Int16, 1, 0)
+AddIndexFifo(Synth_, 2048, Int16, 1, 0)
+AddIndexFifo(Speech_,2048, Int16, 1, 0)
+AddIndexFifo(DAC_,2048, Int16, 1, 0)
 
 DATA inputSpeech [2*BUFSIZE];
 DATA inputSynth  [2*BUFSIZE];
@@ -120,13 +120,15 @@ void addition(DATA *x, DATA *y, DATA *out, int length) {
 		out[i] = x[i] + y[i];
 	}
 }
-
+DATA temporary;
 bool selectiveAddition(DATA *x, int bin1, int bin2, int threshold) {
-	float output = 0;
+	short output = 0;
 	int i;
+
 	for (i = bin1; i < bin2; i++)
 	{
-		output = output + x[i];
+		temporary = x[i];
+		output = output + temporary/100;
 	}
 	return output > threshold;
 }
@@ -197,6 +199,8 @@ void main(void)
 			cfft_SCALE(inputSpeech, BUFSIZE);
 			cbrev(inputSpeech, inputSpeech, BUFSIZE);
 
+			applyGain(inputSpeech, 100, 2*BUFSIZE);
+
 			splitRealImag(inputSpeech, speechReal, speechImag, BUFSIZE);
 
 			square(speechReal, BUFSIZE);
@@ -210,23 +214,21 @@ void main(void)
 			//This adds the selected bins, and if the result is above a threshold
 			//fft and use noise
 			//otherwise fft and use synth
-			if (selectiveAddition(speechMagnitude, BUFSIZE/2, BUFSIZE, 3000))
-			{
-				//use noise FFTs to use for synth
-				synthReal = &realNoise[0];
-				synthImag = &imagNoise[0];
-			}
-			else
-			{
+//			if (selectiveAddition(speechMagnitude, BUFSIZE/4, BUFSIZE/2, 500))
+//			{
+//				//use noise FFTs to use for synth
+//				synthReal = &realNoise[0];
+//				synthImag = &imagNoise[0];
+//			}
+//			else
+//			{
 				//Do cfft with scaling.
 				cfft_SCALE(inputSynth, BUFSIZE);
 				cbrev(inputSynth, inputSynth, BUFSIZE);
 				synthReal = &synthRealb[0];
 				synthImag = &synthImagb[0];
 				splitRealImag(inputSynth, synthReal, synthImag, BUFSIZE);
-			}
-
-
+			//}
 
 			// get phase of synth
 			atan2_16(synthReal, synthImag, phase, BUFSIZE);
@@ -257,7 +259,7 @@ void main(void)
 
 			// multiply magnitudes
 			multiply(speechMagnitude, synthMagnitude, speechReal, BUFSIZE);
-			applyGain(speechReal, 100, BUFSIZE);
+			//applyGain(speechReal, 100, BUFSIZE);
 
 			// real = mag * cos(phase)
 			// imag = mag * sin(phase)
