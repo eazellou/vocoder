@@ -1,0 +1,227 @@
+******************************************************************************
+              TMS320C55x Linker PC v4.4.1                      
+******************************************************************************
+>> Linked Tue Dec 06 18:05:22 2016
+
+OUTPUT FILE NAME:   <TI_IIRFilt.out>
+ENTRY POINT SYMBOL: "_c_int00"  address: 00020751
+
+
+MEMORY CONFIGURATION
+
+         name            origin    length      used     unused   attr    fill
+                        (bytes)   (bytes)    (bytes)   (bytes)
+----------------------  --------  ---------  --------  --------  ----  --------
+PAGE 0:
+  MMR                   00000000   000000c0  00000000  000000c0  RWIX
+  DARAM0                000000c0   0000ff40  00003062  0000cede  RWIX
+  SARAM0                00010000   00010000  00000000  00010000  RWIX
+  SARAM1                00020000   00020000  000007a1  0001f85f  RWIX
+  SARAM2                00040000   0000fe00  00000060  0000fda0  RWIX
+  VECS                  0004fe00   00000200  00000100  00000100  RWIX
+  PDROM                 00ff8000   00008000  00000000  00008000  R IX
+
+PAGE 2:
+  IOPORT                00000000   00020000  00000000  00020000  RWI 
+
+
+SECTION ALLOCATION MAP
+(Addresses surrounded by []'s are displayed for convenience only!)
+
+output                                                          attributes/
+section   page  orgn(bytes) orgn(words) len(bytes) len(words)   input sections
+--------  ----  ----------- ----------- ---------- ----------   --------------
+.pinit       0   [ 00040000 ]  00020000          *   00000000   UNINITIALIZED
+
+.stack       0   [ 000000c0 ]  00000060          *   00001000   UNINITIALIZED
+                 [ 000000c0 ]  00000060          *   00001000   --HOLE--
+
+.data        0   [ 000000c0 ]  00000060          *   00000000   UNINITIALIZED
+
+.sysstack 
+*            0   [ 000020c0 ]  00001060          *   00000800   UNINITIALIZED
+                 [ 000020c0 ]  00001060          *   00000800   --HOLE--
+
+.bss         0   [ 000030c0 ]  00001860          *   00000031   UNINITIALIZED
+                 [ 000030c0 ]  00001860          *   00000028   IIRmain.obj (.bss)
+                 [ 00003110 ]  00001888          *   00000004   rts55x.lib : _lock.obj (.bss)
+                 [ 00003118 ]  0000188c          *   00000004              : exit.obj (.bss)
+                 [ 00003120 ]  00001890          *   00000001   usbstk5515bsl.lib : usbstk5515_i2c.obj (.bss)
+
+.text        0     00020000  [ 00010000 ] 000007a1          *   
+                   00020000  [ 00010000 ] 00000223          *   452_Labs_Essentials.lib : AIC_func.obj (.text)
+                   00020223  [ 00010111+] 00000156          *   usbstk5515bsl.lib : usbstk5515_gpio.obj (.text)
+                   00020379  [ 000101bc+] 0000013e          *                     : usbstk5515_i2c.obj (.text)
+                   000204b7  [ 0001025b+] 000000e1          *   IIRmain.obj (.text)
+                   00020598  [ 000102cc ] 0000008f          *   iircasNew.obj (.text)
+                   00020627  [ 00010313+] 00000054          *   usbstk5515bsl.lib : usbstk5515.obj (.text)
+                   0002067b  [ 0001033d+] 0000004d          *   rts55x.lib : autoinit.obj (.text)
+                   000206c8  [ 00010364 ] 0000004b          *              : args_main.obj (.text)
+                   00020713  [ 00010389+] 0000003e          *              : exit.obj (.text)
+                   00020751  [ 000103a8+] 00000034          *              : boot.obj (.text)
+                   00020785  [ 000103c2+] 00000012          *              : _lock.obj (.text)
+                   00020797  [ 000103cb+] 00000007          *              : exit.obj (.text:CIO_breakpoint)
+                   0002079e  [ 000103cf ] 00000002          *              : vectors.obj (.text)
+                   000207a0  [ 000103d0 ] 00000001          *   --HOLE-- [fill = 20]
+
+.cinit       0   [ 00040000 ]  00020000          *   00000030   
+                 [ 00040000 ]  00020000          *   00000017   IIRmain.obj (.cinit)
+                 [ 0004002e ]  00020017          *   0000000a   rts55x.lib : _lock.obj (.cinit)
+                 [ 00040042 ]  00020021          *   0000000a              : exit.obj (.cinit)
+                 [ 00040056 ]  0002002b          *   00000004   usbstk5515bsl.lib : usbstk5515_i2c.obj (.cinit)
+                 [ 0004005e ]  0002002f          *   00000001   --HOLE-- [fill = 0]
+
+vectors      0     0004fe00  [ 00027f00 ] 00000100          *   
+                   0004fe00  [ 00027f00 ] 00000100          *   rts55x.lib : vectors.obj (vectors)
+
+
+GLOBAL SYMBOLS: SORTED ALPHABETICALLY BY Name 
+
+abs. value/
+byte addr   word addr   name
+---------   ---------   ----
+00000002                $TI_capability$C5500$CallingConvention
+00000002                $TI_capability$C5500$MemoryModel
+00000001                $TI_capability_requires_rev3
+ffffffff                .bss
+ffffffff                .data
+ffffffff                .text
+00020798                C$$EXIT
+00020000                _AIC3204_rset
+00020022                _AIC_init
+0002021c                _AIC_off
+000201c4                _AIC_read2
+000201f7                _AIC_write2
+0004fe00                _Reset
+00020321                _USBSTK5515_GPIO_getInput
+00020223                _USBSTK5515_GPIO_init
+00020227                _USBSTK5515_GPIO_setDirection
+000202a4                _USBSTK5515_GPIO_setOutput
+00020398                _USBSTK5515_I2C_close
+00020379                _USBSTK5515_I2C_init
+0002043e                _USBSTK5515_I2C_read
+000203a1                _USBSTK5515_I2C_reset
+000203af                _USBSTK5515_I2C_write
+0002066d                _USBSTK5515_init
+00020627                _USBSTK5515_wait
+0002065b                _USBSTK5515_waitusec
+            00001060    __STACK_END
+00002000                __STACK_SIZE
+00001000                __SYSSTACK_SIZE
+00000001                __TI_args_main
+ffffffff                ___binit__
+ffffffff                ___bss__
+ffffffff                ___c_args__
+            00020000    ___cinit__
+ffffffff                ___data__
+ffffffff                ___edata__
+ffffffff                ___end__
+ffffffff                ___etext__
+ffffffff                ___pinit__
+ffffffff                ___text__
+000206c8                __args_main
+            0000188c    __cleanup_ptr
+            0000188e    __dtors_ptr
+            00001888    __lock
+00020795                __nop
+0002078d                __register_lock
+00020785                __register_unlock
+            00000060    __stack
+            00001060    __sysstack
+            0000188a    __unlock
+00020797                _abort
+0002067b                _auto_init
+            00001863    _biq
+            00001874    _biq_32
+00020751                _c_int00
+            0000186d    _delay_buff
+            00001862    _delta_time
+            00001861    _end_time
+00020713                _exit
+            00001890    _i2c_timeout
+00020598                _iircas5
+000204b7                _main
+            00001860    _start_time
+ffffffff                binit
+            00020000    cinit
+ffffffff                edata
+ffffffff                end
+ffffffff                etext
+ffffffff                pinit
+
+
+GLOBAL SYMBOLS: SORTED BY Symbol Address 
+
+abs. value/
+byte addr   word addr   name
+---------   ---------   ----
+00000001                $TI_capability_requires_rev3
+00000001                __TI_args_main
+00000002                $TI_capability$C5500$CallingConvention
+00000002                $TI_capability$C5500$MemoryModel
+            00000060    __stack
+00001000                __SYSSTACK_SIZE
+00002000                __STACK_SIZE
+            00001060    __STACK_END
+            00001060    __sysstack
+            00001860    _start_time
+            00001861    _end_time
+            00001862    _delta_time
+            00001863    _biq
+            0000186d    _delay_buff
+            00001874    _biq_32
+            00001888    __lock
+            0000188a    __unlock
+            0000188c    __cleanup_ptr
+            0000188e    __dtors_ptr
+            00001890    _i2c_timeout
+00020000                _AIC3204_rset
+00020022                _AIC_init
+000201c4                _AIC_read2
+000201f7                _AIC_write2
+0002021c                _AIC_off
+00020223                _USBSTK5515_GPIO_init
+00020227                _USBSTK5515_GPIO_setDirection
+000202a4                _USBSTK5515_GPIO_setOutput
+00020321                _USBSTK5515_GPIO_getInput
+00020379                _USBSTK5515_I2C_init
+00020398                _USBSTK5515_I2C_close
+000203a1                _USBSTK5515_I2C_reset
+000203af                _USBSTK5515_I2C_write
+0002043e                _USBSTK5515_I2C_read
+000204b7                _main
+00020598                _iircas5
+00020627                _USBSTK5515_wait
+0002065b                _USBSTK5515_waitusec
+0002066d                _USBSTK5515_init
+0002067b                _auto_init
+000206c8                __args_main
+00020713                _exit
+00020751                _c_int00
+00020785                __register_unlock
+0002078d                __register_lock
+00020795                __nop
+00020797                _abort
+00020798                C$$EXIT
+            00020000    ___cinit__
+            00020000    cinit
+0004fe00                _Reset
+ffffffff                .bss
+ffffffff                .data
+ffffffff                .text
+ffffffff                ___binit__
+ffffffff                ___bss__
+ffffffff                ___c_args__
+ffffffff                ___data__
+ffffffff                ___edata__
+ffffffff                ___end__
+ffffffff                ___etext__
+ffffffff                ___pinit__
+ffffffff                ___text__
+ffffffff                binit
+ffffffff                edata
+ffffffff                end
+ffffffff                etext
+ffffffff                pinit
+
+[68 symbols]
