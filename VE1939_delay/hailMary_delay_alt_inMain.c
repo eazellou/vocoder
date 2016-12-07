@@ -16,14 +16,15 @@
 #include "delay.h"
 #include "FIFO_builder.h"
 
-#define BUFSIZE 64
-#define ADC_FIFO_SIZE 128 //BUFSIZE * 2
-#define OVERLAP 32 //BUFSIZE / 2
+#define BUFSIZE 512
+#define ADC_FIFO_SIZE 1024 //BUFSIZE * 2
+#define OVERLAP 256 //BUFSIZE / 2
 #define MAXDELAYSIZE 32768
+#define halfQ 16384
 bool keepSample;
 
-AddIndexFifo(ADC_, 128, Int16, 1, 0)
-AddIndexFifo(DAC_,128, Int16, 1, 0)
+AddIndexFifo(ADC_, 1024, Int16, 1, 0)
+AddIndexFifo(DAC_,1024, Int16, 1, 0)
 
 DATA input [2*BUFSIZE];
 DATA output [2*BUFSIZE];
@@ -77,6 +78,7 @@ void main(void)
     //Initialize to all zeros    
     for(ctr=0; ctr<2*BUFSIZE; ctr++)
     {   input[ctr] = 0;
+    	output[ctr] = 0;
         if(ctr < OVERLAP-1) extra[ctr] = 0;
     }
 
@@ -92,37 +94,42 @@ void main(void)
 		{
 
             //Throw input data into zero-padded frame
-            for(ctr=0; ctr<insize; ctr++) {
+            for(ctr=0; ctr < insize; ctr++) {
                ADC_Fifo_Get(&input[2*ctr]);
             }
 
-            processDelay(input, output, 10000, BUFSIZE);
+            processDelay(input, output, 32000, BUFSIZE);
 
+//            int i;
 //            for(i = 0; i < BUFSIZE*2; i++)
 //            {
 //            	output[i] = input[i];
 //            }
 
 
-            for(ctr=0; ctr < BUFSIZE; ctr++)
+//            for(ctr=0; ctr < BUFSIZE; ctr++)
+//            {
+//                if(ctr >= insize)
+//                {
+//                	// this is the section that will overlap with
+//                	// the beginning of the next segment
+//                	extra[ctr - insize] = output[2*ctr];
+//                }
+//                else if(ctr < OVERLAP - 1)
+//                {
+//                	// outputting the sum of the extra overhang from the
+//                	// previous convolution with the results of this one
+//                	DAC_Fifo_Put(output[2*ctr] + extra[ctr]);
+//                }
+//                else
+//                {
+//                	// this section does not overlap and can be output directly
+//                	DAC_Fifo_Put(output[2*ctr]);
+//                }
+//            }
+            for(ctr=0; ctr < insize; ctr++)
             {
-                if(ctr >= insize)
-                {
-                	// this is the section that will overlap with
-                	// the beginning of the next segment
-                	extra[ctr - insize] = output[2*ctr];
-                }
-                else if(ctr < OVERLAP - 1)
-                {
-                	// outputting the sum of the extra overhang from the
-                	// previous convolution with the results of this one
-                	DAC_Fifo_Put(output[2*ctr] + extra[ctr]);
-                }
-                else
-                {
-                	// this section does not overlap and can be output directly
-                	DAC_Fifo_Put(output[2*ctr]);
-                }
+            	DAC_Fifo_Put(output[2*ctr]);
             }
 
             for(ctr=0; ctr<2*BUFSIZE; ctr++){

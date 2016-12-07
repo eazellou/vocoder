@@ -3,11 +3,14 @@
 
 //DATA bitDepths[15] = {0xC000, 0xE000, 0xF000, 0xF800, 0xFC00, 0xFE00, 0xFF00, 0xFF80, 0xFFC0, 0xFFE0, 0xFFF0, 0xFFF8, 0xFFFC, 0xFFFE, 0xFFFF};
 #define MAXDELAYSIZE 32768
+#define halfQ 16384
 
 Uint16 writeIndex = 0;
 Uint16 readIndex = 0;
 Uint16 delayCounter = 0;
 Uint16 delayLengthSamp = 0;
+
+DATA test2 = 28000;
 
 DATA delayBuffer[MAXDELAYSIZE]; //this should be some maximum, dependent on how much memory is available
 
@@ -64,9 +67,9 @@ void processDelay(DATA *in, DATA *out, Uint16 delayLengthSampIn, int length)
 
 	//this loops and puts samples in delayBuffer from inputBuffer,
 	// then puts samples into the output buffer from the delayBuffer
-	for (delayCounter = 0; delayCounter < length; ++delayCounter)
+	for (delayCounter = 0; delayCounter < length / 2 + 1; ++delayCounter)
 	{
-		delayBuffer[writeIndex] = in[2*delayCounter] / 2 + delayBuffer[readIndex] / 2; //write input + feedback
+		delayBuffer[writeIndex] = (DATA)((((LDATA)(in[2*delayCounter]) + (LDATA)(delayBuffer[readIndex])) * (LDATA)(test2))>>15); //write input + feedback
 		out[2*delayCounter] =  in[2*delayCounter] + delayBuffer[readIndex]; //read input plus delay
 
 		++writeIndex;
