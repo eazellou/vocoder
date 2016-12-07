@@ -24,13 +24,15 @@ bool keepSample;
 
 AddIndexFifo(Synth_, 2048, Int16, 1, 0)
 AddIndexFifo(Speech_,2048, Int16, 1, 0)
-AddIndexFifo(DAC_,2048, Int16, 1, 0)
+AddIndexFifo(DACVocoder_,2048, Int16, 1, 0)
+AddIndexFifo(DACClean_,2048,Int16,1,0)
 
 DATA inputSpeech [2*BUFSIZE];
 DATA inputSynth  [2*BUFSIZE];
+DATA speechPassThrough [2*BUFSIZE];
 DATA output [2*BUFSIZE];
 DATA extra [OVERLAP-1];
-Int16 flag;
+Int16 flag1,flag2;
 
 DATA speechReal[BUFSIZE];
 DATA speechImag[BUFSIZE];
@@ -51,14 +53,16 @@ void Reset();
 interrupt void I2S_ISR()
 {
 	if (keepSample) {
-		Int16 right, left, out;
+		Int16 right, left, outVocode, outClean;
 		AIC_read2(&right, &left);
 		Speech_Fifo_Put(right);
 		Synth_Fifo_Put(left);
 		//Synth_Fifo_Put(right);
-		flag = DAC_Fifo_Get(&out);
-		if(flag == 0) out = 0;
-		AIC_write2(out, out);
+		flag1 = DACVocoder_Fifo_Get(&outVocode);
+		flag2 = DACClean_Fifo_Get(&outClean);
+		if(flag1 == 0) outVocode = 0;
+		if(flag2 == 0) outClean = 0;
+		AIC_write2(outVocode, outClean);
 		IFR0 &= (1 << I2S_BIT_POS);//Clear interrupt Flag
 
 		keepSample = false;
@@ -147,11 +151,12 @@ void applyGain(DATA *input, int gainFactor, int length){
 
 
 void main(void)
-{
+ {
 	synthReal = &synthRealb[0];
 	synthImag = &synthImagb[0];
 	unsigned int tmp;
-    DAC_Fifo_Init();
+    DACVocoder_Fifo_Init();
+    DACClean_Fifo_Init();
     Speech_Fifo_Init();
     Synth_Fifo_Init();
 
@@ -163,6 +168,7 @@ void main(void)
     for(ctr=0; ctr<2*BUFSIZE; ctr++)
     {   inputSpeech[ctr] = 0;
     	inputSynth[ctr] = 0;
+    	speechPassThrough[ctr] = 0;
         if(ctr < OVERLAP-1) extra[ctr] = 0;
     }
 
@@ -181,8 +187,7 @@ void main(void)
             for(ctr=0; ctr<insize; ctr++) {
                Speech_Fifo_Get(&inputSpeech[2*ctr]);
                Synth_Fifo_Get(&inputSynth[2*ctr]);
-//               inputSpeech[2*ctr + 1] = 0;
-//               inputSynth[2*ctr + 1] = 0;
+               speechPassThrough[2*ctr] = inputSpeech[2*ctr];
             }
 
             //TODO
@@ -214,7 +219,7 @@ void main(void)
 			//This adds the selected bins, and if the result is above a threshold
 			//fft and use noise
 			//otherwise fft and use synth
-//			if (selectiveAddition(speechMagnitude, BUFSIZE/4, BUFSIZE/2, 500))
+//			if (selectiveAddition(speechMagnitude, 384, 512, 200))
 //			{
 //				//use noise FFTs to use for synth
 //				synthReal = &realNoise[0];
@@ -292,12 +297,14 @@ void main(void)
                 {
                 	// outputting the sum of the extra overhang from the
                 	// previous convolution with the results of this one
-                	DAC_Fifo_Put(output[2*ctr] + extra[ctr]);
+                	DACVocoder_Fifo_Put(output[2*ctr] + extra[ctr]);
+                	DACClean_Fifo_Put(speechPassThrough[2*ctr]);
                 }
                 else
                 {
                 	// this section does not overlap and can be output directly
-                	DAC_Fifo_Put(output[2*ctr]);
+                	DACVocoder_Fifo_Put(output[2*ctr]);
+                	DACClean_Fifo_Put(speechPassThrough[2*ctr]);
                 }
             }
 
