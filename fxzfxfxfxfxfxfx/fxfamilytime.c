@@ -21,15 +21,28 @@
 #define OVERLAP  512
 bool keepSample;
 
-AddIndexFifo(ADC_, 2048, Int16, 1, 0)
+AddIndexFifo(ADC_Dry_, 2048, Int16, 1, 0)
+AddIndexFifo(ADC_Wet_, 2048, Int16, 1, 0)
 AddIndexFifo(DAC_,2048, Int16, 1, 0)
 
 DATA input [2*BUFSIZE];
+DATA inputDry [2*BUFSIZE];
 DATA output [2*BUFSIZE];
 DATA extra [OVERLAP-1];
 Int16 flag;
 
 extern volatile int16_t k1, k2, k3, k4, k5, k6, k7, k8, k9;
+extern volatile int16_t s1, f1;
+/*
+ * 1 - mix
+ * 2 - distortion
+ * 3 - delay time
+ * 4 - delay feedback
+ * 5-8 - eq
+ * 9 - chorus
+ * f1 - master gain
+ * s1 - switch
+ */
 
 void Reset();
 void InitUART(unsigned int baud_divisor);
@@ -40,7 +53,8 @@ interrupt void I2S_ISR()
 	if (keepSample) {
 		Int16 right, left, out;
 		AIC_read2(&right, &left);
-		ADC_Fifo_Put(right);
+		ADC_Wet_Fifo_Put(right);
+		ADC_Dry_Fifo_Put(left);
 		flag = DAC_Fifo_Get(&out);
 		if(flag == 0) out = 0;
 		AIC_write2(out, out);
@@ -51,7 +65,6 @@ interrupt void I2S_ISR()
 		keepSample = true;
 	}
 }
-
 
 // Setup AIC interrupt routine.
 void I2S_interrupt_setup(void)
@@ -67,8 +80,36 @@ void I2S_interrupt_setup(void)
 	IFR0 &= (1 << I2S_BIT_POS);
 }
 
+void applyGain(DATA *input, DATA gainFactor, int length){
+	int i = 0;
+	for(i = 0; i < length; ++i){
+		input[i] = (DATA)(((LDATA)input[i] * (LDATA)gainFactor)>>15);
+	}
+}
+
+void addition(DATA *x, DATA *y, DATA *out, int length) {
+	int i = 0;
+	for (i = 0; i < length; i++) {
+		out[i] = x[i] + y[i];
+	}
+}
+
+void mixDryWet(DATA* inDry, DATA *inWet, DATA *out, DATA wetAmount, int length) {
+	applyGain(inWet, wetAmount, length);
+	applyGain(inDry, 32767 - wetAmount, length);
+	addition(inWet, inDry, out, length);
+}
+
+DATA normalizeDryWet(int knob) {
+	return ((int)knob / 254) << 15;
+}
+
+DATA normalizeMasterGain(int knob) {
+	return ((DATA)(knob / 254)) << 15;
+}
+
 int normalizeBitDepth(int knob){
-	return (knob/16) + 1;
+	return 16 - ((int)(knob / 18) + 1);
 }
 
 int normalizeDelayFeedback(int knob){
@@ -82,7 +123,8 @@ int normalizeDelayTime(int knob){
 void main(void)
  {
     DAC_Fifo_Init();
-    ADC_Fifo_Init();
+    ADC_Dry_Fifo_Init();
+    ADC_Wet_Fifo_Init();
 
     keepSample = true;
     DATA test = 0;
@@ -112,12 +154,25 @@ void main(void)
 
             //Throw input data into zero-padded frame
             for(ctr=0; ctr<insize; ctr++) {
-               ADC_Fifo_Get(&input[2*ctr]);
+               ADC_Wet_Fifo_Get(&input[2*ctr]);
+               ADC_Dry_Fifo_Get(&inputDry[2*ctr]);
             }
 
-            processBitCrush(input, output, normalizeBitDepth(k3), 2*BUFSIZE);
-            processDelay(output, output, normalizeDelayTime(k1), normalizeDelayFeedback(k2), BUFSIZE);
+            // mix
+            mixDryWet(inputDry, input, input, normalizeDryWet(k1), 2*BUFSIZE);
 
+            if (s1 > 0) {
+				processBitCrush(input, output, normalizeBitDepth(k2), 2*BUFSIZE);
+				processDelay(output, output, normalizeDelayTime(k3), normalizeDelayFeedback(k4), BUFSIZE);
+            } else {
+            	int i = 0;
+            	for (i = 0; i < 2*BUFSIZE; i++){
+            		output[i] = input[i];
+            	}
+            }
+
+            // gain
+            applyGain(output, normalizeMasterGain(f1), 2*BUFSIZE);
 
             for(ctr=0; ctr < BUFSIZE; ctr++)
             {
