@@ -14,6 +14,7 @@
 #include <stdbool.h>
 #include "FIFO_builder.h"
 #include "bitCrush.h"
+#include "delay.h"
 
 #define BUFSIZE 1024
 #define ADC_FIFO_SIZE 2048
@@ -66,6 +67,18 @@ void I2S_interrupt_setup(void)
 	IFR0 &= (1 << I2S_BIT_POS);
 }
 
+int normalizeBitDepth(int knob){
+	return (knob/16) + 1;
+}
+
+int normalizeDelayFeedback(int knob){
+	return (knob*120);
+}
+
+int normalizeDelayTime(int knob){
+	return (knob*120);
+}
+
 void main(void)
  {
     DAC_Fifo_Init();
@@ -91,7 +104,8 @@ void main(void)
 
 	while(1)
 	{
-		printf("K1 value: %d\n", k1);
+		//printf("K1 value: %d\n", k1);
+		//printf("K2 value: %d\n", k2);
 
 		if(ADC_Fifo_Size() >= insize)
 		{
@@ -101,7 +115,8 @@ void main(void)
                ADC_Fifo_Get(&input[2*ctr]);
             }
 
-            //processBitCrush(input, output, 7, 2*BUFSIZE);
+            processBitCrush(input, output, normalizeBitDepth(k3), 2*BUFSIZE);
+            processDelay(output, output, normalizeDelayTime(k1), normalizeDelayFeedback(k2), BUFSIZE);
 
 
             for(ctr=0; ctr < BUFSIZE; ctr++)
@@ -125,8 +140,14 @@ void main(void)
                 }
             }
 
+//            for(ctr=0; ctr<insize; ctr++)
+//            {
+//            	DAC_Fifo_Put(output[2*ctr]);
+//            }
+
             for(ctr=0; ctr<2*BUFSIZE; ctr++){
             	input[ctr] = 0;
+            	output[ctr] = 0;
             }
 
             if(ADC_Fifo_Size() >= insize) printf("error\n");

@@ -23,6 +23,7 @@ fxfamilytime.obj: C:/VApps/ticcs/6p1p0/ccsv6/tools/compiler/c5500_4.4.1/include/
 fxfamilytime.obj: ../FIFO_builder.h
 fxfamilytime.obj: C:/VApps/ticcs/6p1p0/ccsv6/tools/compiler/c5500_4.4.1/include/stdint.h
 fxfamilytime.obj: ../bitCrush.h
+fxfamilytime.obj: ../delay.h
 
 ../fxfamilytime.c: 
 N:/windat.V2/workspace_v6_1/C5515_Support_Files/452_Support/Dsplib.h: 
@@ -47,3 +48,4 @@ C:/VApps/ticcs/6p1p0/ccsv6/tools/compiler/c5500_4.4.1/include/_lock.h:
 ../FIFO_builder.h: 
 C:/VApps/ticcs/6p1p0/ccsv6/tools/compiler/c5500_4.4.1/include/stdint.h: 
 ../bitCrush.h: 
+../delay.h: 
