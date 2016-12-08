@@ -17,10 +17,11 @@ void Reset();
 volatile uint16_t UART_input = 0;
 volatile int16_t UART_input_flag = 0;
 
-typedef enum{IDLE, K1, K2, K3, K4, K5, K6, K7, K8, K9} KnobState;
+typedef enum{IDLE, K1, K2, K3, K4, K5, K6, K7, K8, K9, F1, S1} KnobState;
 KnobState UARTstate;
 
 volatile int16_t k1 = 0, k2 = 0, k3 = 0, k4 = 0, k5 = 0, k6 = 0, k7 = 0, k8 = 0, k9 = 0;
+volatile int16_t s1 = 0, f1 = 0;
 
 
 interrupt void uart_interrupt_handler(void){
@@ -73,8 +74,15 @@ interrupt void uart_interrupt_handler(void){
 		break;
 	case K9:
 		k9 = UART_RBR;
-		UARTstate = IDLE;
+		UARTstate = F1;
 		break;
+	case F1:
+		f1 = UART_RBR;
+		UARTstate = S1;
+		break;
+	case S1:
+		s1 = UART_RBR;
+		UARTstate = IDLE;
 	}
 }
 

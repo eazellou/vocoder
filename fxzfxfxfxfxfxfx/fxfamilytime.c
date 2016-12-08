@@ -15,6 +15,7 @@
 #include "FIFO_builder.h"
 #include "bitCrush.h"
 #include "delay.h"
+#include "newChorus.h"
 
 #define BUFSIZE 1024
 #define ADC_FIFO_SIZE 2048
@@ -34,19 +35,20 @@ Int16 flag;
 extern volatile int16_t k1, k2, k3, k4, k5, k6, k7, k8, k9;
 extern volatile int16_t s1, f1;
 /*
- * 1 - mix
- * 2 - distortion
- * 3 - delay time
- * 4 - delay feedback
+ * 1 - delay feedback
+ * 2 - delay time
+ * 3 - chorus
+ * 4 - distortion
  * 5-8 - eq
- * 9 - chorus
- * f1 - master gain
- * s1 - switch
+ * 9 - mix
  */
+
+uint16_t InitializeCPU(uint16_t CPU_clock_rate, uint16_t CPU_id);
+void ConfigPort(void);
 
 void Reset();
 void InitUART(unsigned int baud_divisor);
-#define C55XX_UART_DIVIDE 651
+#define C55XX_UART_DIVIDE 434
 
 interrupt void I2S_ISR()
 {
@@ -95,17 +97,28 @@ void addition(DATA *x, DATA *y, DATA *out, int length) {
 }
 
 void mixDryWet(DATA* inDry, DATA *inWet, DATA *out, DATA wetAmount, int length) {
+
+	DATA dryAmount = ((32767 - wetAmount - 1) > 0) ? 32767 - wetAmount - 1 : 0;
+
 	applyGain(inWet, wetAmount, length);
-	applyGain(inDry, 32767 - wetAmount, length);
+	applyGain(inDry, dryAmount, length);
 	addition(inWet, inDry, out, length);
 }
 
 DATA normalizeDryWet(int knob) {
-	return ((int)knob / 254) << 15;
+	return ((DATA)(((LDATA)(knob)<<15) / 255));
+}
+
+DATA normalizeChorusFeedback(int knob) {
+	// want about 0-30000, get 0-255
+	return (DATA)(117 * knob);
 }
 
 DATA normalizeMasterGain(int knob) {
-	return ((DATA)(knob / 254)) << 15;
+	if(knob > 0){
+		knob = 255;
+	}
+	return 32767 - ((DATA)(((LDATA)(knob)<<15) / 255));
 }
 
 int normalizeBitDepth(int knob){
@@ -137,7 +150,9 @@ void main(void)
         if(ctr < OVERLAP-1) extra[ctr] = 0;
     }
 
-	USBSTK5515_init();
+	//USBSTK5515_init();
+	InitializeCPU(100, 5515);
+	ConfigPort();
 	AIC_init();
 	I2S_interrupt_setup();
 	InitUART(C55XX_UART_DIVIDE);	// set the UART baud rate for proper processor
@@ -146,10 +161,10 @@ void main(void)
 
 	while(1)
 	{
-		//printf("K1 value: %d\n", k1);
+		//printf("S1 value: %d\n", s1);
 		//printf("K2 value: %d\n", k2);
 
-		if(ADC_Fifo_Size() >= insize)
+		if(ADC_Wet_Fifo_Size() >= insize && ADC_Dry_Fifo_Size() >= insize)
 		{
 
             //Throw input data into zero-padded frame
@@ -159,58 +174,56 @@ void main(void)
             }
 
             // mix
-            mixDryWet(inputDry, input, input, normalizeDryWet(k1), 2*BUFSIZE);
+            mixDryWet(inputDry, input, output, normalizeDryWet(k9), 2*BUFSIZE);
 
-            if (s1 > 0) {
-				processBitCrush(input, output, normalizeBitDepth(k2), 2*BUFSIZE);
-				processDelay(output, output, normalizeDelayTime(k3), normalizeDelayFeedback(k4), BUFSIZE);
-            } else {
-            	int i = 0;
-            	for (i = 0; i < 2*BUFSIZE; i++){
-            		output[i] = input[i];
-            	}
-            }
+//            processNewChorus(output, output, normalizeChorusFeedback(k3), BUFSIZE);
+			processBitCrush(output, output, normalizeBitDepth(k4), 2*BUFSIZE);
+
+			processDelay(output, output, normalizeDelayTime(k2), normalizeDelayFeedback(k1), BUFSIZE);
+
+//			int i = 0;
+//            for (i = 0; i < 2*BUFSIZE; i++){
+//            	output[i] = input[i];
+//            }
 
             // gain
-            applyGain(output, normalizeMasterGain(f1), 2*BUFSIZE);
+//            DATA test = normalizeMasterGain(f1);
+//            applyGain(output, normalizeMasterGain(f1), 2*BUFSIZE);
 
-            for(ctr=0; ctr < BUFSIZE; ctr++)
-            {
-                if(ctr >= insize)
-                {
-                	// this is the section that will overlap with
-                	// the beginning of the next segment
-                	extra[ctr - insize] = output[2*ctr];
-                }
-                else if(ctr < OVERLAP - 1)
-                {
-                	// outputting the sum of the extra overhang from the
-                	// previous convolution with the results of this one
-                	DAC_Fifo_Put(output[2*ctr] + extra[ctr]);
-                }
-                else
-                {
-                	// this section does not overlap and can be output directly
-                	DAC_Fifo_Put(output[2*ctr]);
-                }
-            }
-
-//            for(ctr=0; ctr<insize; ctr++)
+//            for(ctr=0; ctr < BUFSIZE; ctr++)
 //            {
-//            	DAC_Fifo_Put(output[2*ctr]);
+//                if(ctr >= insize)
+//                {
+//                	// this is the section that will overlap with
+//                	// the beginning of the next segment
+//                	extra[ctr - insize] = output[2*ctr];
+//                }
+//                else if(ctr < OVERLAP - 1)
+//                {
+//                	// outputting the sum of the extra overhang from the
+//                	// previous convolution with the results of this one
+//                	DAC_Fifo_Put(output[2*ctr] + extra[ctr]);
+//                }
+//                else
+//                {
+//                	// this section does not overlap and can be output directly
+//                	DAC_Fifo_Put(output[2*ctr]);
+//                }
 //            }
+
+            for(ctr=0; ctr<insize; ctr++)
+            {
+            	DAC_Fifo_Put(output[2*ctr]);
+            }
 
             for(ctr=0; ctr<2*BUFSIZE; ctr++){
             	input[ctr] = 0;
+            	inputDry[ctr] = 0;
             	output[ctr] = 0;
             }
 
-            if(ADC_Fifo_Size() >= insize) printf("error\n");
+            if(ADC_Wet_Fifo_Size() >= insize || ADC_Dry_Fifo_Size() >= insize) printf("error\n");
 		}
 	}
 
 }
-
-
-
-
