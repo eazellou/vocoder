@@ -1,0 +1,165 @@
+******************************************************************************
+              TMS320C55x Linker PC v4.4.0                      
+******************************************************************************
+>> Linked Mon Jan 09 15:56:53 2012
+
+OUTPUT FILE NAME:   <Starting_point.out>
+ENTRY POINT SYMBOL: "_c_int00"  address: 000200d6
+
+
+MEMORY CONFIGURATION
+
+         name            origin    length      used     unused   attr    fill
+                        (bytes)   (bytes)    (bytes)   (bytes)
+----------------------  --------  ---------  --------  --------  ----  --------
+PAGE 0:
+  MMR                   00000000   000000c0  00000000  000000c0  RWIX
+  DARAM0                000000c0   0000ff40  00003010  0000cf30  RWIX
+  SARAM0                00010000   00010000  00000000  00010000  RWIX
+  SARAM1                00020000   00020000  00000126  0001feda  RWIX
+  SARAM2                00040000   0000fe00  0000002a  0000fdd6  RWIX
+  VECS                  0004fe00   00000200  00000100  00000100  RWIX
+  PDROM                 00ff8000   00008000  00000000  00008000  R IX
+
+PAGE 2:
+  IOPORT                00000000   00020000  00000000  00020000  RWI 
+
+
+SECTION ALLOCATION MAP
+(Addresses surrounded by []'s are displayed for convenience only!)
+
+output                                                          attributes/
+section   page  orgn(bytes) orgn(words) len(bytes) len(words)   input sections
+--------  ----  ----------- ----------- ---------- ----------   --------------
+.pinit       0   [ 00040000 ]  00020000          *   00000000   UNINITIALIZED
+
+.stack       0   [ 000000c0 ]  00000060          *   00001000   UNINITIALIZED
+                 [ 000000c0 ]  00000060          *   00001000   --HOLE--
+
+.data        0   [ 000000c0 ]  00000060          *   00000000   UNINITIALIZED
+
+.sysstack 
+*            0   [ 000020c0 ]  00001060          *   00000800   UNINITIALIZED
+                 [ 000020c0 ]  00001060          *   00000800   --HOLE--
+
+.bss         0   [ 000030c0 ]  00001860          *   00000008   UNINITIALIZED
+                 [ 000030c0 ]  00001860          *   00000004   rts55x.lib : _lock.obj (.bss)
+                 [ 000030c8 ]  00001864          *   00000004              : exit.obj (.bss)
+
+.text        0     00020000  [ 00010000 ] 00000126          *   
+                   00020000  [ 00010000 ] 0000004d          *   rts55x.lib : autoinit.obj (.text)
+                   0002004d  [ 00010026+] 0000004b          *              : args_main.obj (.text)
+                   00020098  [ 0001004c ] 0000003e          *              : exit.obj (.text)
+                   000200d6  [ 0001006b ] 00000034          *              : boot.obj (.text)
+                   0002010a  [ 00010085 ] 00000012          *              : _lock.obj (.text)
+                   0002011c  [ 0001008e ] 00000007          *              : exit.obj (.text:CIO_breakpoint)
+                   00020123  [ 00010091+] 00000002          *              : vectors.obj (.text)
+                   00020125  [ 00010092 ] 00000001          *   --HOLE-- [fill = 20]
+
+.cinit       0   [ 00040000 ]  00020000          *   00000015   
+                 [ 00040000 ]  00020000          *   0000000a   rts55x.lib : _lock.obj (.cinit)
+                 [ 00040014 ]  0002000a          *   0000000a              : exit.obj (.cinit)
+                 [ 00040028 ]  00020014          *   00000001   --HOLE-- [fill = 0]
+
+vectors      0     0004fe00  [ 00027f00 ] 00000100          *   
+                   0004fe00  [ 00027f00 ] 00000100          *   rts55x.lib : vectors.obj (vectors)
+
+
+GLOBAL SYMBOLS: SORTED ALPHABETICALLY BY Name 
+
+abs. value/
+byte addr   word addr   name
+---------   ---------   ----
+00000002                $TI_capability$C5500$CallingConvention
+00000002                $TI_capability$C5500$MemoryModel
+ffffffff                .bss
+ffffffff                .data
+ffffffff                .text
+0002011d                C$$EXIT
+0004fe00                _Reset
+            00001060    __STACK_END
+00002000                __STACK_SIZE
+00001000                __SYSSTACK_SIZE
+00000001                __TI_args_main
+ffffffff                ___binit__
+ffffffff                ___bss__
+ffffffff                ___c_args__
+            00020000    ___cinit__
+ffffffff                ___data__
+ffffffff                ___edata__
+ffffffff                ___end__
+ffffffff                ___etext__
+ffffffff                ___pinit__
+ffffffff                ___text__
+0002004d                __args_main
+            00001864    __cleanup_ptr
+            00001866    __dtors_ptr
+            00001860    __lock
+0002011a                __nop
+00020112                __register_lock
+0002010a                __register_unlock
+            00000060    __stack
+            00001060    __sysstack
+            00001862    __unlock
+0002011c                _abort
+00020000                _auto_init
+000200d6                _c_int00
+00020098                _exit
+UNDEFED    _main
+ffffffff                binit
+            00020000    cinit
+ffffffff                edata
+ffffffff                end
+ffffffff                etext
+ffffffff                pinit
+
+
+GLOBAL SYMBOLS: SORTED BY Symbol Address 
+
+abs. value/
+byte addr   word addr   name
+---------   ---------   ----
+00000001                __TI_args_main
+00000002                $TI_capability$C5500$CallingConvention
+00000002                $TI_capability$C5500$MemoryModel
+            00000060    __stack
+00001000                __SYSSTACK_SIZE
+00002000                __STACK_SIZE
+            00001060    __STACK_END
+            00001060    __sysstack
+            00001860    __lock
+            00001862    __unlock
+            00001864    __cleanup_ptr
+            00001866    __dtors_ptr
+00020000                _auto_init
+0002004d                __args_main
+00020098                _exit
+000200d6                _c_int00
+0002010a                __register_unlock
+00020112                __register_lock
+0002011a                __nop
+0002011c                _abort
+0002011d                C$$EXIT
+            00020000    ___cinit__
+            00020000    cinit
+0004fe00                _Reset
+ffffffff                .bss
+ffffffff                .data
+ffffffff                .text
+ffffffff                ___binit__
+ffffffff                ___bss__
+ffffffff                ___c_args__
+ffffffff                ___data__
+ffffffff                ___edata__
+ffffffff                ___end__
+ffffffff                ___etext__
+ffffffff                ___pinit__
+ffffffff                ___text__
+ffffffff                binit
+ffffffff                edata
+ffffffff                end
+ffffffff                etext
+ffffffff                pinit
+UNDEFED    _main
+
+[42 symbols]
