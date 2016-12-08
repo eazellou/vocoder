@@ -10,30 +10,30 @@ ASM_SRCS += \
 ../iircasNew.asm 
 
 C_SRCS += \
-../IIRmain.c 
+../eqtest.c 
 
 OBJS += \
-./IIRmain.obj \
+./eqtest.obj \
 ./iircasNew.obj 
 
 ASM_DEPS += \
 ./iircasNew.pp 
 
 C_DEPS += \
-./IIRmain.pp 
+./eqtest.pp 
 
 C_DEPS__QUOTED += \
-"IIRmain.pp" 
+"eqtest.pp" 
 
 OBJS__QUOTED += \
-"IIRmain.obj" \
+"eqtest.obj" \
 "iircasNew.obj" 
 
 ASM_DEPS__QUOTED += \
 "iircasNew.pp" 
 
 C_SRCS__QUOTED += \
-"../IIRmain.c" 
+"../eqtest.c" 
 
 ASM_SRCS__QUOTED += \
 "../iircasNew.asm" 

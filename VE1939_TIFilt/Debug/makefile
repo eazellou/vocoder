@@ -7,7 +7,7 @@ SHELL = cmd.exe
 CG_TOOL_ROOT := C:/VApps/ticcs/6p1p0/ccsv6/tools/compiler/c5500_4.4.1
 
 ORDERED_OBJS += \
-"./IIRmain.obj" \
+"./eqtest.obj" \
 "./iircasNew.obj" \
 "../lnkx.cmd" \
 $(GEN_CMDS__FLAG) \
@@ -138,8 +138,8 @@ VE1939_TIFilt.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 # Other Targets
 clean:
 	-$(RM) $(EXE_OUTPUTS__QUOTED)
-	-$(RM) "IIRmain.pp" 
-	-$(RM) "IIRmain.obj" "iircasNew.obj" 
+	-$(RM) "eqtest.pp" 
+	-$(RM) "eqtest.obj" "iircasNew.obj" 
 	-$(RM) "iircasNew.pp" 
 	-@echo 'Finished clean'
 	-@echo ' '
