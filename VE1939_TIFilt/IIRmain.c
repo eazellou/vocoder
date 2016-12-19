@@ -19,6 +19,7 @@
 #define halfPiQ 16384
 #define Q2  46340
 #define Q_BP  131072
+//#define Q_BP 262144
 
 //useful for timing routine!
 #define TCR0 		*((ioport volatile Uint16 *)0x1810)
