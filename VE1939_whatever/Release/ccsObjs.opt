@@ -1,1 +1,0 @@
-"./AIC_func.obj" "./Copy of hailMary.obj" "./InitializeC55xxCPU.obj" "./hailMary.obj" -l"libc.a" 
